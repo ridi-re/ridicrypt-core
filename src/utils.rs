@@ -1,6 +1,20 @@
 use std::path::PathBuf;
 
-pub fn secret_to_str(b: Vec<u8>) -> crate::Result<String> {
+use base64::{Engine as _, engine::general_purpose};
+use keyring::Entry;
+
+pub fn get_global_key() -> crate::Result<String> {
+    #[cfg(target_os = "windows")]
+    let entry = Entry::new_with_target("com.ridi.books/global", "", "global")?;
+    #[cfg(target_os = "macos")]
+    let entry = Entry::new_with_target("com.ridi.books", "", "global")?;
+
+    let secret = secret_to_str(entry.get_secret()?)?;
+    let decoded = general_purpose::STANDARD.decode(secret.trim_matches(char::is_whitespace))?;
+    Ok(String::from_utf8(decoded)?)
+}
+
+fn secret_to_str(b: Vec<u8>) -> crate::Result<String> {
     #[cfg(target_os = "windows")]
     {
         let is_utf16le = b.len() % 2 == 0

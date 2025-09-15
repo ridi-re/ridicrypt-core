@@ -1,26 +1,23 @@
-use aes::Aes128;
-use cbc::Decryptor;
-use cbc::cipher::{BlockDecryptMut, KeyIvInit, block_padding::Pkcs7};
 use std::fs::File;
 use std::io::{Read, Write};
 use std::{fs, path::Path};
+
+use aes::Aes128;
+use cbc::Decryptor;
+use cbc::cipher::{BlockDecryptMut, KeyIvInit, block_padding::Pkcs7};
 use zip::{ZipArchive, ZipWriter, write::SimpleFileOptions as FileOptions};
 
-pub fn to_u8(key: impl AsRef<[u8]>, path: impl AsRef<Path>) -> crate::Result<Vec<u8>> {
-    _decrypt(key.as_ref(), path.as_ref())
-}
-
 pub fn to_string(key: impl AsRef<[u8]>, path: impl AsRef<Path>) -> crate::Result<String> {
-    let bytes = to_u8(key, path)?;
+    let bytes = decrypt(key.as_ref(), path)?;
     Ok(String::from_utf8(bytes)?)
 }
 
-pub fn zip_legacy(
+pub fn binary(
     key: impl AsRef<[u8]>,
     path: impl AsRef<Path>,
     target: impl AsRef<Path>,
 ) -> crate::Result<()> {
-    let data = to_u8(key, path)?;
+    let data = decrypt(key.as_ref(), path)?;
     fs::write(target.as_ref(), &data)?;
     Ok(())
 }
@@ -80,11 +77,15 @@ fn decrypt_buf(key: &[u8], data: &[u8]) -> crate::Result<Vec<u8>> {
     Ok(raw.to_vec())
 }
 
-fn _decrypt(key: &[u8], path: impl AsRef<Path>) -> crate::Result<Vec<u8>> {
-    assert_eq!(key.len(), 16, "key for .dat must be 16 bytes (AES-128)");
+fn decrypt(key: &[u8], path: impl AsRef<Path>) -> crate::Result<Vec<u8>> {
+    if key.len() != 16 {
+        return Err("key for .dat must be 16 bytes (AES-128)".into());
+    }
 
     let buf = fs::read(path)?;
-    assert!(buf.len() > 16, ".dat file must be larger than 16 bytes");
+    if buf.len() <= 16 {
+        return Err(".dat file must be larger than 16 bytes".into());
+    }
 
     decrypt_buf(key, &buf)
 }

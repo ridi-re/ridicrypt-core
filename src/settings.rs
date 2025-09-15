@@ -1,11 +1,11 @@
 use serde::Deserialize;
 use sha1::{Digest, Sha1};
+
 use std::{
     fs,
     io::{Error as IoError, ErrorKind},
+    path::Path,
 };
-
-use crate::utils::get_settings_path;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
@@ -38,8 +38,8 @@ pub struct Device {
     pub device_nick: String,
 }
 
-pub fn decrypt(key: &str) -> crate::Result<Settings> {
-    let buffer = fs::read(get_settings_path()?)?;
+pub fn decrypt(key: &str, path: impl AsRef<Path>) -> crate::Result<Settings> {
+    let buffer = fs::read(path)?;
     if buffer.len() < 256 {
         return Err(IoError::new(ErrorKind::InvalidData, "buffer shorter than 256").into());
     }
