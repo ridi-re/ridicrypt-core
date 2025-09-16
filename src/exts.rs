@@ -1,15 +1,15 @@
 use std::path::Path;
 
+use crate::datastores;
 use crate::decrypt;
-use crate::settings;
 
-pub trait SettingsExt {
-    fn decrypt_settings(&self, path: impl AsRef<Path>) -> crate::Result<settings::Settings>;
+pub trait DatastoresExt {
+    fn decrypt_datastores(&self, path: impl AsRef<Path>) -> crate::Result<String>;
 }
 
-impl SettingsExt for str {
-    fn decrypt_settings(&self, path: impl AsRef<Path>) -> crate::Result<settings::Settings> {
-        Ok(settings::decrypt(self, path)?)
+impl DatastoresExt for str {
+    fn decrypt_datastores(&self, path: impl AsRef<Path>) -> crate::Result<String> {
+        Ok(datastores::decrypt(self, path)?)
     }
 }
 

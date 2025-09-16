@@ -37,28 +37,18 @@ fn secret_to_str(b: Vec<u8>) -> crate::Result<String> {
     }
 }
 
-pub fn get_settings_path() -> crate::Result<PathBuf> {
+pub fn get_ridi_data_path() -> crate::Result<PathBuf> {
     #[cfg(target_os = "windows")]
     {
         let app_data = std::env::var("APPDATA")?;
-        Ok([&app_data, "Ridibooks", "datastores", "global", "Settings"]
-            .iter()
-            .collect())
+        Ok([&app_data, "Ridibooks"].iter().collect())
     }
 
     #[cfg(target_os = "macos")]
     {
         let home = std::env::var("HOME")?;
-        Ok([
-            &home,
-            "Library",
-            "Application Support",
-            "Ridibooks",
-            "datastores",
-            "global",
-            "Settings",
-        ]
-        .iter()
-        .collect())
+        Ok([&home, "Library", "Application Support", "Ridibooks"]
+            .iter()
+            .collect())
     }
 }

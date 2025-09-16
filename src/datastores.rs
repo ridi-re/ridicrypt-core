@@ -1,4 +1,3 @@
-use serde::Deserialize;
 use sha1::{Digest, Sha1};
 
 use std::{
@@ -7,38 +6,7 @@ use std::{
     path::Path,
 };
 
-#[allow(dead_code)]
-#[derive(Debug, Clone, Deserialize)]
-pub struct Settings {
-    #[serde(rename = "__schema_version__")]
-    pub schema_version: u32,
-    pub data: Data,
-}
-#[allow(dead_code)]
-#[derive(Debug, Clone, Deserialize)]
-pub struct Data {
-    #[serde(rename = "autoLogin")]
-    pub auto_login: AutoLogin,
-    pub device: Device,
-}
-#[allow(dead_code)]
-#[derive(Debug, Clone, Deserialize)]
-pub struct AutoLogin {
-    pub enable: bool,
-    pub username: String,
-    #[serde(rename = "refreshToken")]
-    pub refresh_token: String,
-}
-#[allow(dead_code)]
-#[derive(Debug, Clone, Deserialize)]
-pub struct Device {
-    #[serde(rename = "deviceId")]
-    pub device_id: String,
-    #[serde(rename = "deviceNick")]
-    pub device_nick: String,
-}
-
-pub fn decrypt(key: &str, path: impl AsRef<Path>) -> crate::Result<Settings> {
+pub fn decrypt(key: &str, path: impl AsRef<Path>) -> crate::Result<String> {
     let buffer = fs::read(path)?;
     if buffer.len() < 256 {
         return Err(IoError::new(ErrorKind::InvalidData, "buffer shorter than 256").into());
@@ -66,15 +34,13 @@ pub fn decrypt(key: &str, path: impl AsRef<Path>) -> crate::Result<Settings> {
         pkcs7_pad_in_place(&mut key_bytes, 16);
     }
     // Now key_bytes is a multiple of 16; in CryptoJS: keySize = key.sigBytes / 4
-    let ptxt = aes_ecb_decrypt_cryptojs(&key_bytes, body)?;
-    let mut ptxt = ptxt; // Decrypted plaintext still containing PKCS7 padding
+    let mut ptxt = aes_ecb_decrypt_cryptojs(&key_bytes, body)?;
 
     // CryptoJS.pad.Pkcs7.unpad: take last byte as pad length and truncate
     cryptojs_pkcs7_unpad_in_place(&mut ptxt)?;
 
-    Ok(serde_json::from_str(str::from_utf8(&ptxt).map_err(
-        |_| IoError::new(ErrorKind::InvalidData, "plaintext not utf-8"),
-    )?)?)
+    Ok(String::from_utf8(ptxt)
+        .map_err(|_| IoError::new(ErrorKind::InvalidData, "plaintext not utf-8"))?)
 }
 
 /* ==================== CryptoJS AES (verbatim port) ==================== */
