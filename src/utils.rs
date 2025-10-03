@@ -2,12 +2,13 @@ use std::path::PathBuf;
 
 use base64::{Engine as _, engine::general_purpose};
 use keyring::Entry;
+use sha1::{Digest, Sha1};
 
 pub fn get_global_key() -> crate::Result<String> {
     #[cfg(target_os = "windows")]
     let entry = Entry::new_with_target("com.ridi.books/global", "", "global")?;
     #[cfg(target_os = "macos")]
-    let entry = Entry::new_with_target("com.ridi.books", "", "global")?;
+    let entry = Entry::new("com.ridi.books", "global")?;
 
     let secret = secret_to_str(entry.get_secret()?)?;
     let decoded = general_purpose::STANDARD.decode(secret.trim_matches(char::is_whitespace))?;
@@ -35,6 +36,12 @@ fn secret_to_str(b: Vec<u8>) -> crate::Result<String> {
     {
         Ok(String::from_utf8(b)?)
     }
+}
+
+pub fn get_user_key(store_name: &str, user_id: &str) -> crate::Result<String> {
+    let digest = Sha1::digest(format!("{}-{}", store_name, user_id).as_bytes());
+    let hex = format!("{:x}", digest);
+    Ok(hex.chars().skip(2).take(16).collect())
 }
 
 pub fn get_ridi_data_path() -> crate::Result<PathBuf> {
